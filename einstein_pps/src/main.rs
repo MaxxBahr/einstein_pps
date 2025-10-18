@@ -182,11 +182,11 @@ fn checker(persons: &mut Vec<Person>){
 }
 
 fn main() {
-    let person1 = Person::new(None, None, None, None, None);
-    let person2 = Person::new(None, None, None, None, None);
-    let person3 = Person::new(None, None, None, None, None);
-    let person4 = Person::new(None, None, None, None, None);
-    let person5 = Person::new(None, None, None, None, None);
+    let person1 = Person::new(Color::Red, Nations::British, None, None, None);
+    let person2 = Person::new(None, Nations::Swedish, None, Animal::Dog, None);
+    let person3 = Person::new(None, Nations::Danish, Drinks::Tea, None, None);
+    let person4 = Person::new(None, Nations::German, None, None, Cigarettes::Rothmanns);
+    let person5 = Person::new(None, Nations::Norwegian, None, None, None);
     let mut persons: Vec<Person> = Vec::new();
     persons.push(person1);
     persons.push(person2);
