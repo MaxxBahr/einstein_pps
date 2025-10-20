@@ -1,6 +1,6 @@
 use std::vec;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 enum Color{
     Unknown,
     Red,
@@ -10,7 +10,7 @@ enum Color{
     Blue,    
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 enum Nations {
     Unknown,
     German,
@@ -20,7 +20,7 @@ enum Nations {
     British
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 enum Drinks{
     Unknown,
     Coffee,
@@ -30,7 +30,7 @@ enum Drinks{
     Beer
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 enum Animal {
     Unknown,
     Dog,
@@ -40,7 +40,7 @@ enum Animal {
     Bird
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 enum Cigarettes{
     Unknown,
     Rothmanns,
@@ -50,39 +50,21 @@ enum Cigarettes{
     Dunhill
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 struct Person{
-    housecolor: Color,
-    nation: Nations,
-    drink: Drinks,
-    animal: Animal,
-    cigarette: Cigarettes,
+    position: Option<i16>,
+    housecolor: Option<Color>,
+    nation: Option<Nations>,
+    drink: Option<Drinks>,
+    animal: Option<Animal>,
+    cigarette: Option<Cigarettes>,
 }
 
 impl Person {
     // Constructor with options to meet constraints if information is unknown
-    fn new(housecolor: Option<Color>, nation: Option<Nations>, drink: Option<Drinks>, animal: Option<Animal>, cigarette: Option<Cigarettes>) -> Person{
-        let housecolor = if let Some(color) = housecolor{
-            color
-        }else{Color::Unknown};
-
-        let nation = if let Some(nation) = nation {
-            nation
-        }else{Nations::Unknown};
-
-        let drink = if let Some(drink) = drink {
-            drink
-        }else{Drinks::Unknown};
-
-        let animal = if let Some(animal) = animal{
-            animal
-        }else{Animal::Unknown};
-
-        let cigarette = if let Some(cigarette) = cigarette{
-            cigarette
-        }else{Cigarettes::Unknown};
-
+    fn new(position: Option<i16>, housecolor: Option<Color>, nation: Option<Nations>, drink: Option<Drinks>, animal: Option<Animal>, cigarette: Option<Cigarettes>) -> Person{
         Person { 
+            position,
             housecolor, 
             nation, 
             drink, 
@@ -91,108 +73,131 @@ impl Person {
         }
     }
 
+    fn setPosition(&mut self, position: i16){
+        self.position = Some(position);
+    }
+
     fn setColor(&mut self, color: Color){
-        self.housecolor = color;
+        self.housecolor = Some(color);
     }
 
     fn setNation(&mut self, nation: Nations){
-        self.nation = nation;
+        self.nation = Some(nation);
     }
 
     fn setDrink(&mut self, drink: Drinks){
-        self.drink = drink;
+        self.drink = Some(drink);
     }
 
     fn setAnimal(&mut self, animal: Animal){
-        self.animal = animal;
+        self.animal = Some(animal);
     }
 
     fn setCigarette(&mut self, cigarette: Cigarettes){
-        self.cigarette = cigarette;
+        self.cigarette = Some(cigarette);
     }
 }
 
-fn color_check(persons: &mut Vec<Person>) {
-    let mut colors: Vec<Color> = vec![Color::Unknown, Color::Yellow, Color::Green, Color::Red, Color::White, Color::Blue];
-    // Check the already chosen colors and assign the leftovers
-    for person in persons{
-        if person.housecolor != Color::Unknown{
-            colors.retain(|x| *x != person.housecolor);
-        }else{
-            person.setColor(colors.pop().unwrap());
+fn is_filled(persons: &mut Vec<Person>) -> bool{
+    persons.iter().all(|person|
+        person.position.is_some()
+        && person.housecolor.is_some()
+        && person.nation.is_some()
+        && person.animal.is_some()
+        && person.drink.is_some()
+        && person.cigarette.is_some()
+    )
+}
+
+fn check_constraints(persons: &mut Vec<Person>){
+    // Rule 5 - 8, 11: Applied on instantiation
+    loop{
+        // Stop once all fields are filled
+        if is_filled(persons){
+            break;
+        }
+        // Rule 9: Der Besitzer des grünen Hauses trinkt Kaffee
+        for person in persons {
+            if person.housecolor == Some(Color::Green){
+                person.setDrink(Drinks::Coffee);
+            }
+        }
+
+        // Rule 10: Der Winfield-Raucher trinkt gerne Bier
+        for person in persons {
+            if person.cigarette == Some(Cigarettes::Winfield){
+                person.setDrink(Drinks::Beer);
+            }
+        }
+
+        // Rule 13: Der Besitzer des gelben Hauses raucht Dunhill
+        for person in persons {
+            if person.housecolor == Some(Color::Yellow){
+                person.setCigarette(Cigarettes::Dunhill);
+            }
+        }
+        
+        // Rule 14: Die Person, die Pall Mall raucht, hält einen Vogel
+        for person in persons {
+            if person.cigarette == Some(Cigarettes::Pallmall){
+                person.setAnimal(Animal::Bird);
+            }
+        }
+
+        // Rule 15: Der Mann, der im mittleren Haus wohnt, trinkt Milch
+        for person in persons {
+            if person.position == Some(2){
+                person.setDrink(Drinks::Milk);
+            }
+        }
+
+        // Rule 16: Das grüne Haus steht unmittelbar links vom weißen Haus
+        for person in persons {
+            if person.housecolor == Some(Color::Green) && person.position.is_some(){
+                let position = person.position.unwrap();
+                for person in persons{
+                    if person.housecolor == Some(Color::White){
+                        person.position = Some(position + 1);
+                    }
+                }
+            }
+        }
+
+        // Rule 17: Der Marlboro-Raucher wohnt neben dem, der eine Katze hält
+        for person in persons {
+            if person.cigarette == Some(Cigarettes::Marlboro){
+                for person2 in persons{
+                    if person2.animal == Some(Animal::Cat){
+                        person.position = Some(person2.position.unwrap() -1);
+                    }
+                }
+            }
+        }
+
+        // Rule 18: Der Marlboro-Raucher hat einen Nachbarn, der Wasser trinkt
+        for person in persons {
+            if person.cigarette == Some(Cigarettes::Marlboro){
+                // Check if lesser or higher as Drink set
+            }
+        }
+
+        // Rule 19: Der Mann, der ein Pferd hält, wohnt neben dem, der Dunhill raucht
+        for person in persons {
+            if person.cigarette == Some(Cigarettes::Dunhill){
+                // Check if lesser or higher has Animal set
+            }
         }
     }
-}
-
-fn nation_check(persons: &mut Vec<Person>){
-    let mut nations: Vec<Nations> = vec![Nations::Unknown, Nations::German, Nations::Swedish, Nations::British, Nations::Norwegian, Nations::Danish];
-    //Check the already known nations and assign leftovers
-    for person in persons{
-        if person.nation != Nations::Unknown{
-            nations.retain(|x| *x != person.nation);
-        }else{
-            person.setNation(nations.pop().unwrap());
-        }
-    }
-}
-
-fn drink_check(persons: &mut Vec<Person>){
-    let mut drinks: Vec<Drinks> = vec![Drinks::Unknown, Drinks::Coffee, Drinks::Water, Drinks::Milk, Drinks::Tea, Drinks::Beer];
-    //Check the already known drinks and assign leftovers
-    for person in persons{
-        if person.drink != Drinks::Unknown{
-            drinks.retain(|x| *x != person.drink);
-        }else{
-            person.setDrink(drinks.pop().unwrap());
-        }
-    }
-
-}
-
-fn animal_check(persons: &mut Vec<Person>){
-    let mut animals: Vec<Animal> = vec![Animal::Unknown, Animal::Dog, Animal::Fish, Animal::Horse, Animal::Cat, Animal::Bird];
-    //Check the already known animals and assign leftovers
-    for person in persons {
-        if person.animal != Animal::Unknown{
-            animals.retain(|x| *x != person.animal);
-        }else{
-            person.setAnimal(animals.pop().unwrap());
-        }
-    }
-}
-
-fn cigarette_check(persons: &mut Vec<Person>){
-    let mut cigarettes: Vec<Cigarettes> = vec![Cigarettes::Unknown, Cigarettes::Rothmanns, Cigarettes::Marlboro, Cigarettes::Pallmall, Cigarettes::Winfield, Cigarettes::Dunhill];
-    //Check the already known cigarettes and assign leftovers
-    for person in persons{
-        if person.cigarette != Cigarettes::Unknown{
-            cigarettes.retain(|x| *x != person.cigarette);
-        }else{
-            person.setCigarette(cigarettes.pop().unwrap());
-        }
-    }
-}
-
-fn checker(persons: &mut Vec<Person>){
-    color_check(persons);
-    nation_check(persons);
-    drink_check(persons);
-    animal_check(persons);
-    cigarette_check(persons);
 }
 
 fn main() {
     // Check all constraints instead of assigning leftovers
-    let person1 = Person::new(Some(Color::Red), Some(Nations::British), None, None, None);
-    let person2 = Person::new(None, Some(Nations::Swedish), None, Some(Animal::Dog), None);
-    let person3 = Person::new(None, Some(Nations::Danish), Some(Drinks::Tea), None, None);
-    let person4 = Person::new(None, Some(Nations::German), None, None, Some(Cigarettes::Rothmanns));
-    let person5 = Person::new(None, Some(Nations::Norwegian), None, None, None);
+    let person1 = Person::new(None, Some(Color::Red), Some(Nations::British), None, None, None);
+    let person2 = Person::new(None, None, Some(Nations::Swedish), None, Some(Animal::Dog), None);
+    let person3 = Person::new(None, None, Some(Nations::Danish), Some(Drinks::Tea), None, None);
+    let person4 = Person::new(None, None, Some(Nations::German), None, None, Some(Cigarettes::Rothmanns));
+    let person5 = Person::new(Some(1), None, Some(Nations::Norwegian), None, None, None);
     let mut persons: Vec<Person> = Vec::new();
     persons.push(person1);
     persons.push(person2);
-    persons.push(person3);
-    persons.push(person4);
-    persons.push(person5);
-    checker(&mut persons);
 }
