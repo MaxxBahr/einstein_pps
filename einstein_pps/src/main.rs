@@ -1,6 +1,4 @@
-use std::vec;
-
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 enum Color{
     Unknown,
     Red,
@@ -10,7 +8,7 @@ enum Color{
     Blue,    
 }
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 enum Nations {
     Unknown,
     German,
@@ -20,7 +18,7 @@ enum Nations {
     British
 }
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 enum Drinks{
     Unknown,
     Coffee,
@@ -30,7 +28,7 @@ enum Drinks{
     Beer
 }
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 enum Animal {
     Unknown,
     Dog,
@@ -40,7 +38,7 @@ enum Animal {
     Bird
 }
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 enum Cigarettes{
     Unknown,
     Rothmanns,
@@ -50,7 +48,7 @@ enum Cigarettes{
     Dunhill
 }
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 struct Person{
     position: Option<i16>,
     housecolor: Option<Color>,
@@ -109,84 +107,133 @@ fn is_filled(persons: &mut Vec<Person>) -> bool{
     )
 }
 
+fn is_neighbor(pos1: i16, pos2: i16) -> bool {
+    (pos1 - pos2).abs() == 1
+}
+
 fn check_constraints(persons: &mut Vec<Person>){
+    // keep track if changes are made and stop once done or after 100 iterations
+    let mut progress: bool = true;
+    let mut iterations = 0;
+
     // Rule 5 - 8, 11: Applied on instantiation
-    loop{
-        // Stop once all fields are filled
-        if is_filled(persons){
-            break;
-        }
+    while progress && iterations < 100 {
+        progress = false;
+        iterations += 1;
+
         // Rule 9: Der Besitzer des grünen Hauses trinkt Kaffee
-        for person in persons {
-            if person.housecolor == Some(Color::Green){
-                person.setDrink(Drinks::Coffee);
+        for person in persons.iter_mut() {
+            match (person.housecolor, person.drink){
+                (Some(Color::Green), None) =>{
+                    person.setDrink(Drinks::Coffee);
+                }
+                (None, Some(Drinks::Coffee)) =>{
+                    person.setColor(Color::Green);
+                }
+                _=>{}
             }
         }
 
         // Rule 10: Der Winfield-Raucher trinkt gerne Bier
-        for person in persons {
-            if person.cigarette == Some(Cigarettes::Winfield){
-                person.setDrink(Drinks::Beer);
+        for person in persons.iter_mut() {
+            match (person.cigarette, person.drink){
+                (Some(Cigarettes::Winfield), None) => {
+                    person.setDrink(Drinks::Beer);
+                }
+                (None, Some(Drinks::Beer)) =>{
+                    person.setCigarette(Cigarettes::Winfield);
+                }
+                _=>{}
             }
         }
 
         // Rule 13: Der Besitzer des gelben Hauses raucht Dunhill
-        for person in persons {
-            if person.housecolor == Some(Color::Yellow){
-                person.setCigarette(Cigarettes::Dunhill);
+        for person in persons.iter_mut() {
+            match(person.housecolor, person.cigarette) {
+                (Some(Color::Yellow), None) =>{
+                    person.setCigarette(Cigarettes::Dunhill);
+                }
+                (None, Some(Cigarettes::Dunhill)) =>{
+                    person.setColor(Color::Yellow);
+                }
+                _=>{}
             }
         }
         
         // Rule 14: Die Person, die Pall Mall raucht, hält einen Vogel
-        for person in persons {
-            if person.cigarette == Some(Cigarettes::Pallmall){
-                person.setAnimal(Animal::Bird);
+        for person in persons.iter_mut() {
+            match (person.cigarette, person.animal) {
+                (Some(Cigarettes::Pallmall), None) =>{
+                    person.setAnimal(Animal::Bird);
+                }
+                (None, Some(Animal::Bird)) => {
+                    person.setCigarette(Cigarettes::Pallmall);
+                }
+                _=>{}
             }
         }
 
         // Rule 15: Der Mann, der im mittleren Haus wohnt, trinkt Milch
-        for person in persons {
-            if person.position == Some(2){
-                person.setDrink(Drinks::Milk);
+        for person in persons.iter_mut() {
+            match (person.position, person.drink) {
+                (Some(3), None) => {
+                    person.setDrink(Drinks::Milk);
+                }
+                (None, Some(Drinks::Milk)) => {
+                    person.setPosition(3);
+                }
+                _=>{}
             }
         }
 
         // Rule 16: Das grüne Haus steht unmittelbar links vom weißen Haus
-        for person in persons {
-            if person.housecolor == Some(Color::Green) && person.position.is_some(){
-                let position = person.position.unwrap();
-                for person in persons{
-                    if person.housecolor == Some(Color::White){
-                        person.position = Some(position + 1);
+        for i in 0..persons.len() {
+            if let Some(pos_green) = persons[i].position {
+                for j in 0..persons.len() {
+                    if persons[j].housecolor == Some(Color::White) && persons[j].position.is_none() {
+                        if pos_green < 5 {
+                            persons[j].setPosition(pos_green + 1);
+                            progress = true;
+                        }
                     }
                 }
             }
         }
 
         // Rule 17: Der Marlboro-Raucher wohnt neben dem, der eine Katze hält
-        for person in persons {
-            if person.cigarette == Some(Cigarettes::Marlboro){
-                for person2 in persons{
-                    if person2.animal == Some(Animal::Cat){
-                        person.position = Some(person2.position.unwrap() -1);
+        for i in 0..persons.len() {
+            if persons[i].cigarette == Some(Cigarettes::Marlboro) {
+                for j in 0..persons.len() {
+                    if let (Some(pos_i), Some(pos_j)) = (persons[i].position, persons[j].position) {
+                        if is_neighbor(pos_i, pos_j) && persons[j].animal == Some(Animal::Cat) {
+                            progress = true;
+                        }
                     }
                 }
             }
         }
 
+
         // Rule 18: Der Marlboro-Raucher hat einen Nachbarn, der Wasser trinkt
-        for person in persons {
+        for person in persons.iter_mut() {
             if person.cigarette == Some(Cigarettes::Marlboro){
                 // Check if lesser or higher as Drink set
+                progress = true;
             }
         }
 
         // Rule 19: Der Mann, der ein Pferd hält, wohnt neben dem, der Dunhill raucht
-        for person in persons {
+        for person in persons.iter_mut() {
             if person.cigarette == Some(Cigarettes::Dunhill){
                 // Check if lesser or higher has Animal set
+                progress = true;
             }
         }
+        print!("{}[2J", 27 as char);
+        println!("----------{iterations}----------");
+    }
+    if !is_filled(persons){
+        println!("Not all values set!");
     }
 }
 
@@ -200,4 +247,10 @@ fn main() {
     let mut persons: Vec<Person> = Vec::new();
     persons.push(person1);
     persons.push(person2);
+    persons.push(person3);
+    persons.push(person4);
+    persons.push(person5);
+    check_constraints(&mut persons);
+    println!("{:?}", persons);
+
 }
